@@ -88,15 +88,26 @@ export default function HomeScreen() {
     dueDate.setDate(dueDate.getDate() + item.rechargeCycleDays);
     const dueDateStr = dueDate.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit", weekday: "short" });
 
+    // 背景色根据紧急程度区分
+    const cardBgColor = status === "danger" ? statusColor + "10" : status === "warning" ? statusColor + "08" : undefined;
+    const borderColor = status === "danger" ? statusColor + "40" : status === "warning" ? statusColor + "30" : colors.border;
+
     return (
       <TouchableOpacity
-        className="bg-surface rounded-2xl p-4 mb-3 border border-border"
-        style={{ borderLeftWidth: 4, borderLeftColor: statusColor }}
+        className="rounded-2xl p-4 mb-3 border"
+        style={{
+          borderLeftWidth: 4,
+          borderLeftColor: statusColor,
+          backgroundColor: cardBgColor || colors.surface,
+          borderColor: borderColor,
+        }}
         onPress={() => router.push(`/card/${item.id}` as any)}
       >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3 flex-1">
-            <Text className="text-2xl">{country?.flag || "📱"}</Text>
+            <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: statusColor + "15" }}>
+              <Text className="text-xl">{country?.flag || "📱"}</Text>
+            </View>
             <View className="flex-1">
               <Text className="text-base font-semibold text-foreground">{item.carrier}</Text>
               <Text className="text-sm text-muted mt-0.5">{item.phoneNumber}</Text>
@@ -107,14 +118,14 @@ export default function HomeScreen() {
             <Text className="text-2xl font-bold" style={{ color: statusColor }}>
               {daysLeft > 0 ? daysLeft : 0}
             </Text>
-            <Text className="text-xs text-muted">
+            <Text className="text-xs font-medium" style={{ color: statusColor }}>
               {daysLeft > 0 ? "天后到期" : daysLeft === 0 ? "今天到期" : "已过期"}
             </Text>
             <Text className="text-xs mt-0.5" style={{ color: statusColor }}>
               {dueDateStr}
             </Text>
-            <View className="mt-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: statusColor + "20" }}>
-              <Text className="text-xs font-medium" style={{ color: statusColor }}>{statusText}</Text>
+            <View className="mt-1.5 px-2.5 py-1 rounded-full" style={{ backgroundColor: statusColor + "20" }}>
+              <Text className="text-xs font-semibold" style={{ color: statusColor }}>{statusText}</Text>
             </View>
           </View>
         </View>
