@@ -32,7 +32,7 @@ const env = {
   appSlug: "simcard-reminder",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "",
+  logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663428352640/Dainczb7iNY2wjsDN3RMV6/app-icon-PLondFjVZSD3dt7ES8gUxR.png",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,

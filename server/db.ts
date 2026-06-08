@@ -1,11 +1,10 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, simCards, rechargeHistory, InsertSimCard, InsertRechargeHistory } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -85,8 +84,72 @@ export async function getUserByOpenId(openId: string) {
   }
 
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ============ SIM Card Functions ============
+
+export async function getUserSimCards(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(simCards).where(eq(simCards.userId, userId));
+}
+
+export async function getSimCardById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(simCards)
+    .where(and(eq(simCards.id, id), eq(simCards.userId, userId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createSimCard(data: InsertSimCard) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(simCards).values(data);
+  return result[0].insertId;
+}
+
+export async function updateSimCard(id: number, userId: number, data: Partial<InsertSimCard>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(simCards).set(data).where(and(eq(simCards.id, id), eq(simCards.userId, userId)));
+}
+
+export async function deleteSimCard(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(simCards).where(and(eq(simCards.id, id), eq(simCards.userId, userId)));
+  // Also delete related recharge history
+  await db.delete(rechargeHistory).where(and(eq(rechargeHistory.cardId, id), eq(rechargeHistory.userId, userId)));
+}
+
+export async function confirmRecharge(cardId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const now = new Date();
+
+  // Update card: reset lastRechargeDate and isConfirmed
+  await db.update(simCards).set({
+    lastRechargeDate: now,
+    isConfirmed: true,
+  }).where(and(eq(simCards.id, cardId), eq(simCards.userId, userId)));
+
+  // Add to recharge history
+  await db.insert(rechargeHistory).values({
+    cardId,
+    userId,
+    rechargeDate: now,
+  });
+}
+
+// ============ Recharge History Functions ============
+
+export async function getRechargeHistory(cardId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(rechargeHistory)
+    .where(and(eq(rechargeHistory.cardId, cardId), eq(rechargeHistory.userId, userId)));
+}
