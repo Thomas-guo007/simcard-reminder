@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity, FlatList, RefreshControl } from "react-native";
+import { Text, View, TouchableOpacity, SectionList, FlatList, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -7,15 +7,18 @@ import { trpc } from "@/lib/trpc";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { getDaysUntilDue, getCardStatus } from "@/lib/notifications";
 import { getCountryByCode } from "@/constants/countries";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { scheduleCardReminders, registerForNotifications } from "@/lib/notifications";
 import { Platform } from "react-native";
+
+type ViewMode = "urgency" | "country";
 
 export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("urgency");
 
   const { data: cards, isLoading, refetch } = trpc.simCards.list.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -59,6 +62,46 @@ export default function HomeScreen() {
       router.replace("/login");
     }
   }, [authLoading, isAuthenticated]);
+
+  // 按紧急程度排序的卡片
+  const sortedCards = useMemo(() => {
+    if (!cards) return [];
+    return [...cards].sort((a, b) => {
+      const daysA = getDaysUntilDue(a.lastRechargeDate, a.rechargeCycleDays);
+      const daysB = getDaysUntilDue(b.lastRechargeDate, b.rechargeCycleDays);
+      return daysA - daysB;
+    });
+  }, [cards]);
+
+  // 按国家分组的卡片
+  const groupedByCountry = useMemo(() => {
+    if (!cards) return [];
+    const groups: Record<string, { countryName: string; flag: string; data: typeof cards }> = {};
+    cards.forEach((card) => {
+      const key = card.country;
+      if (!groups[key]) {
+        const countryData = getCountryByCode(card.country);
+        groups[key] = {
+          countryName: card.countryName,
+          flag: countryData?.flag || "🌍",
+          data: [],
+        };
+      }
+      groups[key].data.push(card);
+    });
+
+    // 每组内按紧急程度排序
+    return Object.entries(groups).map(([code, group]) => ({
+      title: `${group.flag} ${group.countryName}`,
+      countryCode: code,
+      cardCount: group.data.length,
+      data: [...group.data].sort((a, b) => {
+        const daysA = getDaysUntilDue(a.lastRechargeDate, a.rechargeCycleDays);
+        const daysB = getDaysUntilDue(b.lastRechargeDate, b.rechargeCycleDays);
+        return daysA - daysB;
+      }),
+    }));
+  }, [cards]);
 
   if (authLoading || isLoading) {
     return (
@@ -111,7 +154,9 @@ export default function HomeScreen() {
             <View className="flex-1">
               <Text className="text-base font-semibold text-foreground">{item.carrier}</Text>
               <Text className="text-sm text-muted mt-0.5">{item.phoneNumber}</Text>
-              <Text className="text-xs text-muted mt-0.5">{item.countryName}</Text>
+              {viewMode === "urgency" && (
+                <Text className="text-xs text-muted mt-0.5">{item.countryName}</Text>
+              )}
             </View>
           </View>
           <View className="items-end">
@@ -133,6 +178,17 @@ export default function HomeScreen() {
     );
   };
 
+  const renderSectionHeader = ({ section }: { section: { title: string; cardCount: number } }) => (
+    <View className="flex-row items-center justify-between py-3 px-1 mt-2">
+      <Text className="text-base font-bold text-foreground">{section.title}</Text>
+      <View className="px-2.5 py-0.5 rounded-full" style={{ backgroundColor: colors.primary + "15" }}>
+        <Text className="text-xs font-medium" style={{ color: colors.primary }}>
+          {section.cardCount} 张
+        </Text>
+      </View>
+    </View>
+  );
+
   const EmptyState = () => (
     <View className="flex-1 items-center justify-center py-20">
       <IconSymbol name="sim.card" size={64} color={colors.muted} />
@@ -151,7 +207,7 @@ export default function HomeScreen() {
   return (
     <ScreenContainer className="px-4 pt-4">
       {/* Header */}
-      <View className="flex-row items-center justify-between mb-4 px-2">
+      <View className="flex-row items-center justify-between mb-3 px-2">
         <View>
           <Text className="text-2xl font-bold text-foreground">我的卡片</Text>
           <Text className="text-sm text-muted mt-0.5">
@@ -165,22 +221,63 @@ export default function HomeScreen() {
         )}
       </View>
 
+      {/* View Mode Toggle */}
+      {cards && cards.length > 0 && (
+        <View className="flex-row mb-3 rounded-xl overflow-hidden border border-border">
+          <TouchableOpacity
+            className="flex-1 py-2.5 items-center"
+            style={{ backgroundColor: viewMode === "urgency" ? colors.primary : "transparent" }}
+            onPress={() => setViewMode("urgency")}
+          >
+            <Text
+              className="text-sm font-medium"
+              style={{ color: viewMode === "urgency" ? "#FFFFFF" : colors.muted }}
+            >
+              按紧急程度
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-1 py-2.5 items-center"
+            style={{ backgroundColor: viewMode === "country" ? colors.primary : "transparent" }}
+            onPress={() => setViewMode("country")}
+          >
+            <Text
+              className="text-sm font-medium"
+              style={{ color: viewMode === "country" ? "#FFFFFF" : colors.muted }}
+            >
+              按国家/地区
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Card List */}
       {cards && cards.length > 0 ? (
-        <FlatList
-          data={[...cards].sort((a, b) => {
-            const daysA = getDaysUntilDue(a.lastRechargeDate, a.rechargeCycleDays);
-            const daysB = getDaysUntilDue(b.lastRechargeDate, b.rechargeCycleDays);
-            return daysA - daysB;
-          })}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderCard}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-          }
-          contentContainerStyle={{ paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-        />
+        viewMode === "urgency" ? (
+          <FlatList
+            data={sortedCards}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderCard}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+            }
+            contentContainerStyle={{ paddingBottom: 100 }}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <SectionList
+            sections={groupedByCountry}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderCard}
+            renderSectionHeader={renderSectionHeader}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+            }
+            contentContainerStyle={{ paddingBottom: 100 }}
+            showsVerticalScrollIndicator={false}
+            stickySectionHeadersEnabled={false}
+          />
+        )
       ) : (
         <EmptyState />
       )}
@@ -190,9 +287,9 @@ export default function HomeScreen() {
         <TouchableOpacity
           className="absolute bottom-6 right-6 w-14 h-14 rounded-full items-center justify-center shadow-lg"
           style={{ backgroundColor: colors.primary }}
-                  onPress={() => router.push("/card/add" as any)}
-      >
-        <IconSymbol name="plus.circle.fill" size={28} color="#FFFFFF" />
+          onPress={() => router.push("/card/add" as any)}
+        >
+          <IconSymbol name="plus.circle.fill" size={28} color="#FFFFFF" />
         </TouchableOpacity>
       )}
     </ScreenContainer>
