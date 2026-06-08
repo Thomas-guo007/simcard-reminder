@@ -82,6 +82,12 @@ export default function HomeScreen() {
     const statusColor = status === "danger" ? colors.error : status === "warning" ? colors.warning : colors.success;
     const statusText = status === "danger" ? "已过期" : status === "warning" ? "即将到期" : "正常";
 
+    // 计算到期日期
+    const lastRecharge = new Date(item.lastRechargeDate);
+    const dueDate = new Date(lastRecharge);
+    dueDate.setDate(dueDate.getDate() + item.rechargeCycleDays);
+    const dueDateStr = dueDate.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit", weekday: "short" });
+
     return (
       <TouchableOpacity
         className="bg-surface rounded-2xl p-4 mb-3 border border-border"
@@ -101,7 +107,12 @@ export default function HomeScreen() {
             <Text className="text-2xl font-bold" style={{ color: statusColor }}>
               {daysLeft > 0 ? daysLeft : 0}
             </Text>
-            <Text className="text-xs text-muted">天后到期</Text>
+            <Text className="text-xs text-muted">
+              {daysLeft > 0 ? "天后到期" : daysLeft === 0 ? "今天到期" : "已过期"}
+            </Text>
+            <Text className="text-xs mt-0.5" style={{ color: statusColor }}>
+              {dueDateStr}
+            </Text>
             <View className="mt-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: statusColor + "20" }}>
               <Text className="text-xs font-medium" style={{ color: statusColor }}>{statusText}</Text>
             </View>
