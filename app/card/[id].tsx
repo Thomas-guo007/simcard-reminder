@@ -104,9 +104,14 @@ export default function CardDetailScreen() {
             <Text className="text-base" style={{ color: colors.primary }}>返回</Text>
           </TouchableOpacity>
           <Text className="text-lg font-bold text-foreground">卡片详情</Text>
-          <TouchableOpacity onPress={handleDelete}>
-            <IconSymbol name="trash.fill" size={22} color={colors.error} />
-          </TouchableOpacity>
+          <View className="flex-row items-center gap-4">
+            <TouchableOpacity onPress={() => router.push(`/card/edit/${cardId}` as any)}>
+              <IconSymbol name="pencil" size={22} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleDelete}>
+              <IconSymbol name="trash.fill" size={22} color={colors.error} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Card Info */}

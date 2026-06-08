@@ -157,7 +157,11 @@ export default function HomeScreen() {
       {/* Card List */}
       {cards && cards.length > 0 ? (
         <FlatList
-          data={cards}
+          data={[...cards].sort((a, b) => {
+            const daysA = getDaysUntilDue(a.lastRechargeDate, a.rechargeCycleDays);
+            const daysB = getDaysUntilDue(b.lastRechargeDate, b.rechargeCycleDays);
+            return daysA - daysB;
+          })}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderCard}
           refreshControl={

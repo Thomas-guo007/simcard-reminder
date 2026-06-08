@@ -90,6 +90,7 @@ export default function RootLayout() {
             <Stack.Screen name="login" options={{ presentation: "fullScreenModal" }} />
             <Stack.Screen name="card/add" options={{ presentation: "modal" }} />
             <Stack.Screen name="card/[id]" />
+            <Stack.Screen name="card/edit/[id]" options={{ presentation: "modal" }} />
             <Stack.Screen name="oauth/callback" />
           </Stack>
           <StatusBar style="auto" />
