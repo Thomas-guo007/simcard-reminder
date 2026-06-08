@@ -162,18 +162,38 @@ export default function CardDetailScreen() {
               </Text>
             </View>
             <View className="flex-row justify-between">
-              <Text className="text-sm text-muted">提醒设置</Text>
+              <Text className="text-sm text-muted">到期日</Text>
               <Text className="text-sm text-foreground">
-                提前 {(card.remindDays as number[]).join("、")} 天
+                {dueDate.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", weekday: "short" })}
               </Text>
             </View>
-            {card.note && (
-              <View className="flex-row justify-between">
-                <Text className="text-sm text-muted">备注</Text>
-                <Text className="text-sm text-foreground flex-1 text-right ml-4">{card.note}</Text>
-              </View>
-            )}
           </View>
+        </View>
+
+        {/* Reminder Schedule */}
+        <View className="bg-surface rounded-2xl p-4 border border-border mb-4">
+          <Text className="text-base font-semibold text-foreground mb-3">提醒日期</Text>
+          <View className="gap-2">
+            {(card.remindDays as number[]).map((day) => {
+              const reminderDate = new Date(dueDate);
+              reminderDate.setDate(reminderDate.getDate() - day);
+              const reminderColor = day === 1 ? colors.error : day === 3 ? colors.warning : colors.primary;
+              return (
+                <View key={day} className="flex-row items-center justify-between py-1">
+                  <Text className="text-sm text-muted">提前 {day} 天</Text>
+                  <Text className="text-sm font-medium" style={{ color: reminderColor }}>
+                    {reminderDate.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", weekday: "short" })}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+          {card.note && (
+            <View className="flex-row justify-between mt-3 pt-3 border-t border-border">
+              <Text className="text-sm text-muted">备注</Text>
+              <Text className="text-sm text-foreground flex-1 text-right ml-4">{card.note}</Text>
+            </View>
+          )}
         </View>
 
         {/* Recharge History */}

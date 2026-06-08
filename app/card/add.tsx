@@ -4,8 +4,10 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { COUNTRIES } from "@/constants/countries";
-import { useState } from "react";
+import { RINGTONES } from "@/constants/ringtones";
+import { useState, useMemo } from "react";
 import { scheduleCardReminders } from "@/lib/notifications";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function AddCardScreen() {
   const colors = useColors();
@@ -22,9 +24,44 @@ export default function AddCardScreen() {
   const [remind7, setRemind7] = useState(true);
   const [remind3, setRemind3] = useState(true);
   const [remind1, setRemind1] = useState(true);
+  const [selectedRingtone, setSelectedRingtone] = useState("default");
+  const [showRingtonePicker, setShowRingtonePicker] = useState(false);
   const [note, setNote] = useState("");
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
+
+  // 计算到期日和各提醒日期
+  const reminderDates = useMemo(() => {
+    const cycle = parseInt(rechargeCycleDays) || 30;
+    const lastDate = new Date(lastRechargeDate);
+    if (isNaN(lastDate.getTime())) {
+      return { dueDate: null, remind7Date: null, remind3Date: null, remind1Date: null };
+    }
+
+    const dueDate = new Date(lastDate);
+    dueDate.setDate(dueDate.getDate() + cycle);
+
+    const remind7Date = new Date(dueDate);
+    remind7Date.setDate(remind7Date.getDate() - 7);
+
+    const remind3Date = new Date(dueDate);
+    remind3Date.setDate(remind3Date.getDate() - 3);
+
+    const remind1Date = new Date(dueDate);
+    remind1Date.setDate(remind1Date.getDate() - 1);
+
+    return { dueDate, remind7Date, remind3Date, remind1Date };
+  }, [lastRechargeDate, rechargeCycleDays]);
+
+  const formatDate = (date: Date | null): string => {
+    if (!date) return "---";
+    return date.toLocaleDateString("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      weekday: "short",
+    });
+  };
 
   const createMutation = trpc.simCards.create.useMutation({
     onSuccess: async (result) => {
@@ -76,6 +113,8 @@ export default function AddCardScreen() {
   const filteredCountries = COUNTRIES.filter(
     (c) => c.name.includes(countrySearch) || c.code.toLowerCase().includes(countrySearch.toLowerCase())
   );
+
+  const currentRingtone = RINGTONES.find(r => r.id === selectedRingtone);
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} className="px-4 pt-4">
@@ -190,35 +229,115 @@ export default function AddCardScreen() {
           <Text className="text-xs text-muted mt-1">格式：2024-01-15</Text>
         </View>
 
-        {/* Remind Days */}
+        {/* Due Date Display */}
+        {reminderDates.dueDate && (
+          <View className="mb-4 bg-surface border border-border rounded-xl p-4">
+            <View className="flex-row items-center gap-2 mb-2">
+              <IconSymbol name="bell.fill" size={16} color={colors.error} />
+              <Text className="text-sm font-semibold text-foreground">到期日</Text>
+            </View>
+            <Text className="text-base font-bold" style={{ color: colors.error }}>
+              {formatDate(reminderDates.dueDate)}
+            </Text>
+          </View>
+        )}
+
+        {/* Remind Days with Specific Dates */}
         <View className="mb-4">
           <Text className="text-sm font-medium text-foreground mb-3">提醒设置</Text>
           <View className="bg-surface border border-border rounded-xl overflow-hidden">
-            <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-              <Text className="text-foreground">提前 7 天提醒</Text>
-              <Switch
-                value={remind7}
-                onValueChange={setRemind7}
-                trackColor={{ true: colors.primary }}
-              />
+            {/* 7 days before */}
+            <View className="px-4 py-3 border-b border-border">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1">
+                  <Text className="text-foreground">提前 7 天提醒</Text>
+                  {remind7 && reminderDates.remind7Date && (
+                    <Text className="text-xs mt-1" style={{ color: colors.primary }}>
+                      {formatDate(reminderDates.remind7Date)}
+                    </Text>
+                  )}
+                </View>
+                <Switch
+                  value={remind7}
+                  onValueChange={setRemind7}
+                  trackColor={{ true: colors.primary }}
+                />
+              </View>
             </View>
-            <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-              <Text className="text-foreground">提前 3 天提醒</Text>
-              <Switch
-                value={remind3}
-                onValueChange={setRemind3}
-                trackColor={{ true: colors.primary }}
-              />
+
+            {/* 3 days before */}
+            <View className="px-4 py-3 border-b border-border">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1">
+                  <Text className="text-foreground">提前 3 天提醒</Text>
+                  {remind3 && reminderDates.remind3Date && (
+                    <Text className="text-xs mt-1" style={{ color: colors.warning }}>
+                      {formatDate(reminderDates.remind3Date)}
+                    </Text>
+                  )}
+                </View>
+                <Switch
+                  value={remind3}
+                  onValueChange={setRemind3}
+                  trackColor={{ true: colors.primary }}
+                />
+              </View>
             </View>
-            <View className="flex-row items-center justify-between px-4 py-3">
-              <Text className="text-foreground">提前 1 天提醒</Text>
-              <Switch
-                value={remind1}
-                onValueChange={setRemind1}
-                trackColor={{ true: colors.primary }}
-              />
+
+            {/* 1 day before */}
+            <View className="px-4 py-3">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1">
+                  <Text className="text-foreground">提前 1 天提醒</Text>
+                  {remind1 && reminderDates.remind1Date && (
+                    <Text className="text-xs mt-1" style={{ color: colors.error }}>
+                      {formatDate(reminderDates.remind1Date)}
+                    </Text>
+                  )}
+                </View>
+                <Switch
+                  value={remind1}
+                  onValueChange={setRemind1}
+                  trackColor={{ true: colors.primary }}
+                />
+              </View>
             </View>
           </View>
+        </View>
+
+        {/* Ringtone Selector */}
+        <View className="mb-4">
+          <Text className="text-sm font-medium text-foreground mb-2">提醒铃声</Text>
+          <TouchableOpacity
+            className="bg-surface border border-border rounded-xl px-4 py-3.5 flex-row items-center justify-between"
+            onPress={() => setShowRingtonePicker(!showRingtonePicker)}
+          >
+            <View className="flex-row items-center gap-3">
+              <IconSymbol name="bell.fill" size={18} color={colors.primary} />
+              <Text className="text-foreground">{currentRingtone?.name || "系统默认"}</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+          </TouchableOpacity>
+
+          {showRingtonePicker && (
+            <View className="bg-surface border border-border rounded-xl mt-2 overflow-hidden">
+              {RINGTONES.map((ringtone) => (
+                <TouchableOpacity
+                  key={ringtone.id}
+                  className="px-4 py-3 border-b border-border flex-row items-center justify-between"
+                  onPress={() => {
+                    setSelectedRingtone(ringtone.id);
+                    setShowRingtonePicker(false);
+                  }}
+                >
+                  <Text className="text-foreground">{ringtone.name}</Text>
+                  {selectedRingtone === ringtone.id && (
+                    <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Note */}
