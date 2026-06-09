@@ -32,6 +32,7 @@ export const simCards = mysqlTable("sim_cards", {
   lastRechargeDate: timestamp("lastRechargeDate").notNull(),
   remindDays: json("remindDays").notNull().$type<number[]>(),
   isConfirmed: boolean("isConfirmed").default(false).notNull(),
+  rechargeLink: text("rechargeLink"),
   note: text("note"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

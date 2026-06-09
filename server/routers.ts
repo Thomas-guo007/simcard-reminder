@@ -36,6 +36,7 @@ export const appRouter = router({
         rechargeCycleDays: z.number().min(1).max(365),
         lastRechargeDate: z.string(),
         remindDays: z.array(z.number()),
+        rechargeLink: z.string().optional(),
         note: z.string().optional(),
       }))
       .mutation(({ ctx, input }) => {
@@ -49,6 +50,7 @@ export const appRouter = router({
           lastRechargeDate: new Date(input.lastRechargeDate),
           remindDays: input.remindDays,
           isConfirmed: false,
+          rechargeLink: input.rechargeLink || null,
           note: input.note || null,
         });
       }),
@@ -63,6 +65,7 @@ export const appRouter = router({
         rechargeCycleDays: z.number().min(1).max(365).optional(),
         lastRechargeDate: z.string().optional(),
         remindDays: z.array(z.number()).optional(),
+        rechargeLink: z.string().optional(),
         note: z.string().optional(),
       }))
       .mutation(({ ctx, input }) => {
@@ -75,6 +78,7 @@ export const appRouter = router({
         if (data.rechargeCycleDays) updateData.rechargeCycleDays = data.rechargeCycleDays;
         if (data.lastRechargeDate) updateData.lastRechargeDate = new Date(data.lastRechargeDate);
         if (data.remindDays) updateData.remindDays = data.remindDays;
+        if (data.rechargeLink !== undefined) updateData.rechargeLink = data.rechargeLink || null;
         if (data.note !== undefined) updateData.note = data.note || null;
         return db.updateSimCard(id, ctx.user.id, updateData);
       }),

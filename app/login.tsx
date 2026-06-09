@@ -3,9 +3,11 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { startOAuthLogin } from "@/constants/oauth";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useLanguage } from "@/lib/language-provider";
 
 export default function LoginScreen() {
   const colors = useColors();
+  const { t } = useLanguage();
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} className="px-8">
@@ -18,9 +20,9 @@ export default function LoginScreen() {
           >
             <IconSymbol name="sim.card" size={48} color="#FFFFFF" />
           </View>
-          <Text className="text-3xl font-bold text-foreground">SIM卡充值提醒</Text>
+          <Text className="text-3xl font-bold text-foreground">{t("appTitle")}</Text>
           <Text className="text-base text-muted text-center leading-6">
-            管理您的全球电话卡{"\n"}再也不会忘记充值
+            {t("appSubtitle")}
           </Text>
         </View>
 
@@ -28,15 +30,15 @@ export default function LoginScreen() {
         <View className="w-full gap-3">
           <View className="flex-row items-center gap-3 px-4">
             <IconSymbol name="bell.fill" size={20} color={colors.primary} />
-            <Text className="text-sm text-foreground">提前7天、3天、1天智能提醒</Text>
+            <Text className="text-sm text-foreground">{t("feature1")}</Text>
           </View>
           <View className="flex-row items-center gap-3 px-4">
             <IconSymbol name="sim.card" size={20} color={colors.primary} />
-            <Text className="text-sm text-foreground">支持多张卡片同时管理</Text>
+            <Text className="text-sm text-foreground">{t("feature2")}</Text>
           </View>
           <View className="flex-row items-center gap-3 px-4">
             <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
-            <Text className="text-sm text-foreground">确认充值后自动重置提醒</Text>
+            <Text className="text-sm text-foreground">{t("feature3")}</Text>
           </View>
         </View>
 
@@ -47,10 +49,10 @@ export default function LoginScreen() {
             style={{ backgroundColor: colors.primary }}
             onPress={() => startOAuthLogin()}
           >
-            <Text className="text-white text-lg font-semibold">一键登录</Text>
+            <Text className="text-white text-lg font-semibold">{t("loginButton")}</Text>
           </TouchableOpacity>
           <Text className="text-xs text-muted mt-3 text-center">
-            支持邮箱或手机号登录
+            {t("loginHint")}
           </Text>
         </View>
       </View>

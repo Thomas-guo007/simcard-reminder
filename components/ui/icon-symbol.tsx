@@ -17,6 +17,8 @@ const MAPPING = {
   "bell.fill": "notifications",
   "person.fill": "person",
   "arrow.right.square": "logout",
+  "globe": "language",
+  "link": "link",
 } as const;
 
 type IconSymbolName = keyof typeof MAPPING;

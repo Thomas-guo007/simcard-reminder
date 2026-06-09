@@ -4,21 +4,26 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useLanguage } from "@/lib/language-provider";
+import { useState } from "react";
+import type { Language } from "@/lib/i18n";
 
 export default function SettingsScreen() {
   const colors = useColors();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
+  const [showLangPicker, setShowLangPicker] = useState(false);
 
   const handleLogout = () => {
     if (Platform.OS === "web") {
       logout();
       router.replace("/login");
     } else {
-      Alert.alert("退出登录", "确定要退出登录吗？", [
-        { text: "取消", style: "cancel" },
+      Alert.alert(t("logout"), t("logoutConfirm"), [
+        { text: t("cancel"), style: "cancel" },
         {
-          text: "退出",
+          text: t("logout"),
           style: "destructive",
           onPress: () => {
             logout();
@@ -29,11 +34,16 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleLanguageChange = (lang: Language) => {
+    setLanguage(lang);
+    setShowLangPicker(false);
+  };
+
   return (
     <ScreenContainer className="px-4 pt-4">
       {/* Header */}
       <View className="mb-6 px-2">
-        <Text className="text-2xl font-bold text-foreground">设置</Text>
+        <Text className="text-2xl font-bold text-foreground">{t("settings")}</Text>
       </View>
 
       {/* User Info */}
@@ -47,10 +57,10 @@ export default function SettingsScreen() {
           </View>
           <View className="flex-1">
             <Text className="text-lg font-semibold text-foreground">
-              {user?.name || "用户"}
+              {user?.name || (language === "zh" ? "用户" : "User")}
             </Text>
             <Text className="text-sm text-muted mt-0.5">
-              {user?.email || "已登录"}
+              {user?.email || (language === "zh" ? "已登录" : "Signed in")}
             </Text>
           </View>
         </View>
@@ -58,11 +68,56 @@ export default function SettingsScreen() {
 
       {/* Settings Items */}
       <View className="bg-surface rounded-2xl border border-border mb-4 overflow-hidden">
+        {/* Language Setting */}
+        <TouchableOpacity
+          className="flex-row items-center gap-3 px-4 py-4 border-b border-border"
+          onPress={() => setShowLangPicker(!showLangPicker)}
+        >
+          <IconSymbol name="globe" size={20} color={colors.primary} />
+          <View className="flex-1">
+            <Text className="text-base text-foreground">{t("language")}</Text>
+            <Text className="text-xs text-muted mt-0.5">
+              {language === "zh" ? "中文" : "English"}
+            </Text>
+          </View>
+          <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+        </TouchableOpacity>
+
+        {/* Language Picker */}
+        {showLangPicker && (
+          <View className="px-4 py-2 border-b border-border" style={{ backgroundColor: colors.background }}>
+            <TouchableOpacity
+              className="flex-row items-center justify-between py-3 px-3 rounded-xl mb-1"
+              style={{ backgroundColor: language === "zh" ? colors.primary + "10" : "transparent" }}
+              onPress={() => handleLanguageChange("zh")}
+            >
+              <Text className="text-base text-foreground">{t("languageZh")}</Text>
+              {language === "zh" && (
+                <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-row items-center justify-between py-3 px-3 rounded-xl"
+              style={{ backgroundColor: language === "en" ? colors.primary + "10" : "transparent" }}
+              onPress={() => handleLanguageChange("en")}
+            >
+              <Text className="text-base text-foreground">{t("languageEn")}</Text>
+              {language === "en" && (
+                <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View className="flex-row items-center gap-3 px-4 py-4 border-b border-border">
           <IconSymbol name="bell.fill" size={20} color={colors.primary} />
           <View className="flex-1">
-            <Text className="text-base text-foreground">通知提醒</Text>
-            <Text className="text-xs text-muted mt-0.5">管理充值提醒通知</Text>
+            <Text className="text-base text-foreground">
+              {language === "zh" ? "通知提醒" : "Notifications"}
+            </Text>
+            <Text className="text-xs text-muted mt-0.5">
+              {language === "zh" ? "管理充值提醒通知" : "Manage recharge reminders"}
+            </Text>
           </View>
           <IconSymbol name="chevron.right" size={16} color={colors.muted} />
         </View>
@@ -70,8 +125,10 @@ export default function SettingsScreen() {
         <View className="flex-row items-center gap-3 px-4 py-4">
           <IconSymbol name="sim.card" size={20} color={colors.primary} />
           <View className="flex-1">
-            <Text className="text-base text-foreground">关于应用</Text>
-            <Text className="text-xs text-muted mt-0.5">SIM卡充值提醒 v1.0.0</Text>
+            <Text className="text-base text-foreground">{t("about")}</Text>
+            <Text className="text-xs text-muted mt-0.5">
+              {t("appTitle")} v1.0.0
+            </Text>
           </View>
           <IconSymbol name="chevron.right" size={16} color={colors.muted} />
         </View>
@@ -85,15 +142,17 @@ export default function SettingsScreen() {
         <View className="flex-row items-center gap-2">
           <IconSymbol name="arrow.right.square" size={20} color={colors.error} />
           <Text className="text-base font-medium" style={{ color: colors.error }}>
-            退出登录
+            {t("logout")}
           </Text>
         </View>
       </TouchableOpacity>
 
       {/* Footer */}
       <View className="items-center mt-8">
-        <Text className="text-xs text-muted">SIM卡充值提醒</Text>
-        <Text className="text-xs text-muted mt-1">帮助您管理全球电话卡充值</Text>
+        <Text className="text-xs text-muted">{t("appTitle")}</Text>
+        <Text className="text-xs text-muted mt-1">
+          {language === "zh" ? "帮助您管理全球电话卡充值" : "Helping you manage global SIM card recharges"}
+        </Text>
       </View>
     </ScreenContainer>
   );

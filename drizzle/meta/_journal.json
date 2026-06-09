@@ -15,6 +15,13 @@
       "when": 1780905404901,
       "tag": "0001_vengeful_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1781002574696,
+      "tag": "0002_curved_red_skull",
+      "breakpoints": true
     }
   ]
 }

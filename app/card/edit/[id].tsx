@@ -8,6 +8,8 @@ import { RINGTONES } from "@/constants/ringtones";
 import { useState, useMemo, useEffect } from "react";
 import { scheduleCardReminders } from "@/lib/notifications";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useLanguage } from "@/lib/language-provider";
+import { getCarriersByCountry } from "@/constants/recharge-links";
 
 export default function EditCardScreen() {
   const colors = useColors();
@@ -15,6 +17,7 @@ export default function EditCardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const utils = trpc.useUtils();
   const cardId = parseInt(id || "0");
+  const { t } = useLanguage();
 
   const { data: card, isLoading } = trpc.simCards.getById.useQuery(
     { id: cardId },
@@ -33,6 +36,8 @@ export default function EditCardScreen() {
   const [remind1, setRemind1] = useState(true);
   const [selectedRingtone, setSelectedRingtone] = useState("default");
   const [showRingtonePicker, setShowRingtonePicker] = useState(false);
+  const [rechargeLink, setRechargeLink] = useState("");
+  const [showSuggestedLinks, setShowSuggestedLinks] = useState(false);
   const [note, setNote] = useState("");
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
@@ -53,6 +58,7 @@ export default function EditCardScreen() {
       setRemind7(remindDays.includes(7));
       setRemind3(remindDays.includes(3));
       setRemind1(remindDays.includes(1));
+      setRechargeLink(card.rechargeLink || "");
       setNote(card.note || "");
       setInitialized(true);
     }
@@ -90,6 +96,12 @@ export default function EditCardScreen() {
       weekday: "short",
     });
   };
+
+  // 获取当前国家的运营商充值链接建议
+  const suggestedLinks = useMemo(() => {
+    if (!country) return [];
+    return getCarriersByCountry(country);
+  }, [country]);
 
   const updateMutation = trpc.simCards.update.useMutation({
     onSuccess: async () => {
@@ -136,6 +148,7 @@ export default function EditCardScreen() {
       rechargeCycleDays: parseInt(rechargeCycleDays),
       lastRechargeDate: new Date(lastRechargeDate).toISOString(),
       remindDays,
+      rechargeLink: rechargeLink || undefined,
       note: note || undefined,
     });
   };
@@ -150,7 +163,7 @@ export default function EditCardScreen() {
     return (
       <ScreenContainer edges={["top", "bottom", "left", "right"]} className="p-6">
         <View className="flex-1 items-center justify-center">
-          <Text className="text-muted">加载中...</Text>
+          <Text className="text-muted">{t("loading")}</Text>
         </View>
       </ScreenContainer>
     );
@@ -162,29 +175,29 @@ export default function EditCardScreen() {
         {/* Header */}
         <View className="flex-row items-center justify-between mb-6">
           <TouchableOpacity onPress={() => router.back()} style={{ opacity: 0.8 }}>
-            <Text className="text-base" style={{ color: colors.primary }}>取消</Text>
+            <Text className="text-base" style={{ color: colors.primary }}>{t("cancel")}</Text>
           </TouchableOpacity>
-          <Text className="text-lg font-bold text-foreground">编辑卡片</Text>
+          <Text className="text-lg font-bold text-foreground">{t("editCardTitle")}</Text>
           <TouchableOpacity
             onPress={handleSave}
             disabled={!country || !carrier || !phoneNumber || updateMutation.isPending}
             style={{ opacity: (!country || !carrier || !phoneNumber) ? 0.4 : 1 }}
           >
             <Text className="text-base font-semibold" style={{ color: colors.primary }}>
-              {updateMutation.isPending ? "保存中..." : "保存"}
+              {updateMutation.isPending ? "..." : t("save")}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Country Selector */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-foreground mb-2">国家/地区</Text>
+          <Text className="text-sm font-medium text-foreground mb-2">{t("country")}</Text>
           <TouchableOpacity
             className="bg-surface border border-border rounded-xl px-4 py-3.5"
             onPress={() => setShowCountryPicker(!showCountryPicker)}
           >
             <Text className={country ? "text-foreground" : "text-muted"}>
-              {country ? `${countryFlag} ${countryName}` : "选择国家/地区"}
+              {country ? `${countryFlag} ${countryName}` : t("selectCountry")}
             </Text>
           </TouchableOpacity>
 
@@ -192,7 +205,7 @@ export default function EditCardScreen() {
             <View className="bg-surface border border-border rounded-xl mt-2 max-h-60 overflow-hidden">
               <TextInput
                 className="px-4 py-3 border-b border-border text-foreground"
-                placeholder="搜索国家..."
+                placeholder={t("searchCountry")}
                 placeholderTextColor={colors.muted}
                 value={countrySearch}
                 onChangeText={setCountrySearch}
@@ -220,10 +233,10 @@ export default function EditCardScreen() {
 
         {/* Carrier */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-foreground mb-2">运营商</Text>
+          <Text className="text-sm font-medium text-foreground mb-2">{t("carrier")}</Text>
           <TextInput
             className="bg-surface border border-border rounded-xl px-4 py-3.5 text-foreground"
-            placeholder="例如：China Mobile, AT&T"
+            placeholder={t("carrierPlaceholder")}
             placeholderTextColor={colors.muted}
             value={carrier}
             onChangeText={setCarrier}
@@ -232,10 +245,10 @@ export default function EditCardScreen() {
 
         {/* Phone Number */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-foreground mb-2">电话号码</Text>
+          <Text className="text-sm font-medium text-foreground mb-2">{t("phoneNumber")}</Text>
           <TextInput
             className="bg-surface border border-border rounded-xl px-4 py-3.5 text-foreground"
-            placeholder="输入电话号码"
+            placeholder={t("phonePlaceholder")}
             placeholderTextColor={colors.muted}
             value={phoneNumber}
             onChangeText={setPhoneNumber}
@@ -245,10 +258,10 @@ export default function EditCardScreen() {
 
         {/* Recharge Cycle */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-foreground mb-2">充值周期（天）</Text>
+          <Text className="text-sm font-medium text-foreground mb-2">{t("rechargeCycle")}</Text>
           <TextInput
             className="bg-surface border border-border rounded-xl px-4 py-3.5 text-foreground"
-            placeholder="例如：30"
+            placeholder="30"
             placeholderTextColor={colors.muted}
             value={rechargeCycleDays}
             onChangeText={setRechargeCycleDays}
@@ -258,7 +271,7 @@ export default function EditCardScreen() {
 
         {/* Last Recharge Date */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-foreground mb-2">上次充值日期</Text>
+          <Text className="text-sm font-medium text-foreground mb-2">{t("lastRechargeDate")}</Text>
           <TextInput
             className="bg-surface border border-border rounded-xl px-4 py-3.5 text-foreground"
             placeholder="YYYY-MM-DD"
@@ -266,7 +279,6 @@ export default function EditCardScreen() {
             value={lastRechargeDate}
             onChangeText={setLastRechargeDate}
           />
-          <Text className="text-xs text-muted mt-1">格式：2024-01-15</Text>
         </View>
 
         {/* Due Date Display */}
@@ -274,7 +286,7 @@ export default function EditCardScreen() {
           <View className="mb-4 bg-surface border border-border rounded-xl p-4">
             <View className="flex-row items-center gap-2 mb-2">
               <IconSymbol name="bell.fill" size={16} color={colors.error} />
-              <Text className="text-sm font-semibold text-foreground">到期日</Text>
+              <Text className="text-sm font-semibold text-foreground">{t("dueDate")}</Text>
             </View>
             <Text className="text-base font-bold" style={{ color: colors.error }}>
               {formatDate(reminderDates.dueDate)}
@@ -284,62 +296,47 @@ export default function EditCardScreen() {
 
         {/* Remind Days with Specific Dates */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-foreground mb-3">提醒设置</Text>
+          <Text className="text-sm font-medium text-foreground mb-3">{t("reminderSettings")}</Text>
           <View className="bg-surface border border-border rounded-xl overflow-hidden">
-            {/* 7 days before */}
             <View className="px-4 py-3 border-b border-border">
               <View className="flex-row items-center justify-between">
                 <View className="flex-1">
-                  <Text className="text-foreground">提前 7 天提醒</Text>
+                  <Text className="text-foreground">{t("remindBefore", { days: 7 })}</Text>
                   {remind7 && reminderDates.remind7Date && (
                     <Text className="text-xs mt-1" style={{ color: colors.primary }}>
                       {formatDate(reminderDates.remind7Date)}
                     </Text>
                   )}
                 </View>
-                <Switch
-                  value={remind7}
-                  onValueChange={setRemind7}
-                  trackColor={{ true: colors.primary }}
-                />
+                <Switch value={remind7} onValueChange={setRemind7} trackColor={{ true: colors.primary }} />
               </View>
             </View>
 
-            {/* 3 days before */}
             <View className="px-4 py-3 border-b border-border">
               <View className="flex-row items-center justify-between">
                 <View className="flex-1">
-                  <Text className="text-foreground">提前 3 天提醒</Text>
+                  <Text className="text-foreground">{t("remindBefore", { days: 3 })}</Text>
                   {remind3 && reminderDates.remind3Date && (
                     <Text className="text-xs mt-1" style={{ color: colors.warning }}>
                       {formatDate(reminderDates.remind3Date)}
                     </Text>
                   )}
                 </View>
-                <Switch
-                  value={remind3}
-                  onValueChange={setRemind3}
-                  trackColor={{ true: colors.primary }}
-                />
+                <Switch value={remind3} onValueChange={setRemind3} trackColor={{ true: colors.primary }} />
               </View>
             </View>
 
-            {/* 1 day before */}
             <View className="px-4 py-3">
               <View className="flex-row items-center justify-between">
                 <View className="flex-1">
-                  <Text className="text-foreground">提前 1 天提醒</Text>
+                  <Text className="text-foreground">{t("remindBefore", { days: 1 })}</Text>
                   {remind1 && reminderDates.remind1Date && (
                     <Text className="text-xs mt-1" style={{ color: colors.error }}>
                       {formatDate(reminderDates.remind1Date)}
                     </Text>
                   )}
                 </View>
-                <Switch
-                  value={remind1}
-                  onValueChange={setRemind1}
-                  trackColor={{ true: colors.primary }}
-                />
+                <Switch value={remind1} onValueChange={setRemind1} trackColor={{ true: colors.primary }} />
               </View>
             </View>
           </View>
@@ -347,14 +344,14 @@ export default function EditCardScreen() {
 
         {/* Ringtone Selector */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-foreground mb-2">提醒铃声</Text>
+          <Text className="text-sm font-medium text-foreground mb-2">{t("ringtone")}</Text>
           <TouchableOpacity
             className="bg-surface border border-border rounded-xl px-4 py-3.5 flex-row items-center justify-between"
             onPress={() => setShowRingtonePicker(!showRingtonePicker)}
           >
             <View className="flex-row items-center gap-3">
               <IconSymbol name="bell.fill" size={18} color={colors.primary} />
-              <Text className="text-foreground">{currentRingtone?.name || "系统默认"}</Text>
+              <Text className="text-foreground">{currentRingtone?.name || t("selectRingtone")}</Text>
             </View>
             <IconSymbol name="chevron.right" size={16} color={colors.muted} />
           </TouchableOpacity>
@@ -380,12 +377,56 @@ export default function EditCardScreen() {
           )}
         </View>
 
-        {/* Note */}
+        {/* Recharge Link */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-foreground mb-2">备注（可选）</Text>
+          <Text className="text-sm font-medium text-foreground mb-2">{t("rechargeLink")}</Text>
           <TextInput
             className="bg-surface border border-border rounded-xl px-4 py-3.5 text-foreground"
-            placeholder="添加备注信息"
+            placeholder={t("rechargeLinkPlaceholder")}
+            placeholderTextColor={colors.muted}
+            value={rechargeLink}
+            onChangeText={setRechargeLink}
+            keyboardType="url"
+            autoCapitalize="none"
+          />
+          <Text className="text-xs text-muted mt-1">{t("rechargeLinkHint")}</Text>
+
+          {suggestedLinks.length > 0 && (
+            <TouchableOpacity
+              className="mt-2"
+              onPress={() => setShowSuggestedLinks(!showSuggestedLinks)}
+            >
+              <Text className="text-xs font-medium" style={{ color: colors.primary }}>
+                {showSuggestedLinks ? "▼" : "▶"} {suggestedLinks.length} {t("cards")} suggested
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {showSuggestedLinks && suggestedLinks.length > 0 && (
+            <View className="bg-surface border border-border rounded-xl mt-2 overflow-hidden">
+              {suggestedLinks.map((item, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  className="px-4 py-3 border-b border-border"
+                  onPress={() => {
+                    setRechargeLink(item.url);
+                    setShowSuggestedLinks(false);
+                  }}
+                >
+                  <Text className="text-foreground text-sm">{item.carrier}</Text>
+                  <Text className="text-xs text-muted mt-0.5" numberOfLines={1}>{item.url}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Note */}
+        <View className="mb-4">
+          <Text className="text-sm font-medium text-foreground mb-2">{t("notes")}</Text>
+          <TextInput
+            className="bg-surface border border-border rounded-xl px-4 py-3.5 text-foreground"
+            placeholder={t("notesPlaceholder")}
             placeholderTextColor={colors.muted}
             value={note}
             onChangeText={setNote}

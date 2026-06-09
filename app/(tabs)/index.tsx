@@ -10,6 +10,7 @@ import { getCountryByCode } from "@/constants/countries";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { scheduleCardReminders, registerForNotifications } from "@/lib/notifications";
 import { Platform } from "react-native";
+import { useLanguage } from "@/lib/language-provider";
 
 type ViewMode = "urgency" | "country";
 
@@ -19,6 +20,7 @@ export default function HomeScreen() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("urgency");
+  const { t } = useLanguage();
 
   const { data: cards, isLoading, refetch } = trpc.simCards.list.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -90,7 +92,6 @@ export default function HomeScreen() {
       groups[key].data.push(card);
     });
 
-    // 每组内按紧急程度排序
     return Object.entries(groups).map(([code, group]) => ({
       title: `${group.flag} ${group.countryName}`,
       countryCode: code,
@@ -107,7 +108,7 @@ export default function HomeScreen() {
     return (
       <ScreenContainer className="p-6">
         <View className="flex-1 items-center justify-center">
-          <Text className="text-muted text-base">加载中...</Text>
+          <Text className="text-muted text-base">{t("loading")}</Text>
         </View>
       </ScreenContainer>
     );
@@ -123,7 +124,7 @@ export default function HomeScreen() {
     const country = getCountryByCode(item.country);
 
     const statusColor = status === "danger" ? colors.error : status === "warning" ? colors.warning : colors.success;
-    const statusText = status === "danger" ? "已过期" : status === "warning" ? "即将到期" : "正常";
+    const statusText = status === "danger" ? t("statusDanger") : status === "warning" ? t("statusWarning") : t("statusNormal");
 
     // 计算到期日期
     const lastRecharge = new Date(item.lastRechargeDate);
@@ -164,7 +165,7 @@ export default function HomeScreen() {
               {daysLeft > 0 ? daysLeft : 0}
             </Text>
             <Text className="text-xs font-medium" style={{ color: statusColor }}>
-              {daysLeft > 0 ? "天后到期" : daysLeft === 0 ? "今天到期" : "已过期"}
+              {daysLeft > 0 ? t("daysLeft") : daysLeft === 0 ? t("dueToday") : t("expired")}
             </Text>
             <Text className="text-xs mt-0.5" style={{ color: statusColor }}>
               {dueDateStr}
@@ -183,7 +184,7 @@ export default function HomeScreen() {
       <Text className="text-base font-bold text-foreground">{section.title}</Text>
       <View className="px-2.5 py-0.5 rounded-full" style={{ backgroundColor: colors.primary + "15" }}>
         <Text className="text-xs font-medium" style={{ color: colors.primary }}>
-          {section.cardCount} 张
+          {section.cardCount} {t("cards")}
         </Text>
       </View>
     </View>
@@ -192,14 +193,14 @@ export default function HomeScreen() {
   const EmptyState = () => (
     <View className="flex-1 items-center justify-center py-20">
       <IconSymbol name="sim.card" size={64} color={colors.muted} />
-      <Text className="text-lg text-muted mt-4">还没有添加电话卡</Text>
-      <Text className="text-sm text-muted mt-1">点击下方按钮添加您的第一张卡片</Text>
+      <Text className="text-lg text-muted mt-4">{t("noCards")}</Text>
+      <Text className="text-sm text-muted mt-1">{t("noCardsHint")}</Text>
       <TouchableOpacity
         className="mt-6 px-6 py-3 rounded-2xl"
         style={{ backgroundColor: colors.primary }}
         onPress={() => router.push("/card/add" as any)}
       >
-        <Text className="text-white font-semibold">添加卡片</Text>
+        <Text className="text-white font-semibold">{t("addCard")}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -209,9 +210,9 @@ export default function HomeScreen() {
       {/* Header */}
       <View className="flex-row items-center justify-between mb-3 px-2">
         <View>
-          <Text className="text-2xl font-bold text-foreground">我的卡片</Text>
+          <Text className="text-2xl font-bold text-foreground">{t("myCards")}</Text>
           <Text className="text-sm text-muted mt-0.5">
-            {cards && cards.length > 0 ? `共 ${cards.length} 张卡片` : "管理您的电话卡"}
+            {cards && cards.length > 0 ? t("totalCards", { count: cards.length }) : t("manageCards")}
           </Text>
         </View>
         {user && (
@@ -233,7 +234,7 @@ export default function HomeScreen() {
               className="text-sm font-medium"
               style={{ color: viewMode === "urgency" ? "#FFFFFF" : colors.muted }}
             >
-              按紧急程度
+              {t("byUrgency")}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -245,7 +246,7 @@ export default function HomeScreen() {
               className="text-sm font-medium"
               style={{ color: viewMode === "country" ? "#FFFFFF" : colors.muted }}
             >
-              按国家/地区
+              {t("byCountry")}
             </Text>
           </TouchableOpacity>
         </View>
