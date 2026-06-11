@@ -19,6 +19,7 @@ const MAPPING = {
   "arrow.right.square": "logout",
   "globe": "language",
   "link": "link",
+  "arrow.up.circle": "system-update",
 } as const;
 
 type IconSymbolName = keyof typeof MAPPING;

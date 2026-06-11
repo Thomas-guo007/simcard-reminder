@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity, Alert, Platform } from "react-native";
+import { Text, View, TouchableOpacity, Alert, Platform, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -7,6 +7,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useLanguage } from "@/lib/language-provider";
 import { useState } from "react";
 import type { Language } from "@/lib/i18n";
+import { APP_VERSION, checkForUpdate, openUpdateUrl, type VersionInfo } from "@/constants/version";
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -14,6 +15,8 @@ export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const [showLangPicker, setShowLangPicker] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<VersionInfo | null>(null);
 
   const handleLogout = () => {
     if (Platform.OS === "web") {
@@ -37,6 +40,33 @@ export default function SettingsScreen() {
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
     setShowLangPicker(false);
+  };
+
+  const handleCheckUpdate = async () => {
+    setIsCheckingUpdate(true);
+    try {
+      const info = await checkForUpdate();
+      setUpdateInfo(info);
+      if (!info.hasUpdate) {
+        if (Platform.OS === "web") {
+          alert(t("alreadyLatest"));
+        } else {
+          Alert.alert(t("checkUpdate"), t("alreadyLatest"));
+        }
+      }
+    } catch (error) {
+      console.error("[Settings] Check update failed:", error);
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
+  const handleUpdate = () => {
+    if (updateInfo?.downloadUrl) {
+      openUpdateUrl(updateInfo.downloadUrl);
+    } else {
+      openUpdateUrl();
+    }
   };
 
   return (
@@ -109,6 +139,7 @@ export default function SettingsScreen() {
           </View>
         )}
 
+        {/* Notifications */}
         <View className="flex-row items-center gap-3 px-4 py-4 border-b border-border">
           <IconSymbol name="bell.fill" size={20} color={colors.primary} />
           <View className="flex-1">
@@ -122,17 +153,58 @@ export default function SettingsScreen() {
           <IconSymbol name="chevron.right" size={16} color={colors.muted} />
         </View>
 
-        <View className="flex-row items-center gap-3 px-4 py-4">
-          <IconSymbol name="sim.card" size={20} color={colors.primary} />
+        {/* Version & Update */}
+        <TouchableOpacity
+          className="flex-row items-center gap-3 px-4 py-4"
+          onPress={handleCheckUpdate}
+          disabled={isCheckingUpdate}
+        >
+          <IconSymbol name="arrow.up.circle" size={20} color={colors.primary} />
           <View className="flex-1">
-            <Text className="text-base text-foreground">{t("about")}</Text>
+            <Text className="text-base text-foreground">{t("checkUpdate")}</Text>
             <Text className="text-xs text-muted mt-0.5">
-              {t("appTitle")} v1.0.0
+              {t("currentVersion")}: v{APP_VERSION}
             </Text>
           </View>
-          <IconSymbol name="chevron.right" size={16} color={colors.muted} />
-        </View>
+          {isCheckingUpdate ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+          )}
+        </TouchableOpacity>
       </View>
+
+      {/* Update Available Banner */}
+      {updateInfo?.hasUpdate && (
+        <View
+          className="rounded-2xl p-4 border mb-4"
+          style={{ backgroundColor: colors.primary + "10", borderColor: colors.primary + "30" }}
+        >
+          <View className="flex-row items-center gap-3 mb-3">
+            <IconSymbol name="arrow.up.circle" size={24} color={colors.primary} />
+            <View className="flex-1">
+              <Text className="text-base font-semibold text-foreground">
+                {t("updateAvailable")}
+              </Text>
+              <Text className="text-sm text-muted mt-0.5">
+                {t("newVersionAvailable", { version: updateInfo.version })}
+              </Text>
+            </View>
+          </View>
+          {updateInfo.releaseNotes ? (
+            <Text className="text-xs text-muted mb-3" numberOfLines={3}>
+              {updateInfo.releaseNotes}
+            </Text>
+          ) : null}
+          <TouchableOpacity
+            className="w-full py-3 rounded-xl items-center"
+            style={{ backgroundColor: colors.primary }}
+            onPress={handleUpdate}
+          >
+            <Text className="text-white font-semibold">{t("updateNow")}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Logout */}
       <TouchableOpacity
@@ -149,7 +221,7 @@ export default function SettingsScreen() {
 
       {/* Footer */}
       <View className="items-center mt-8">
-        <Text className="text-xs text-muted">{t("appTitle")}</Text>
+        <Text className="text-xs text-muted">{t("appTitle")} v{APP_VERSION}</Text>
         <Text className="text-xs text-muted mt-1">
           {language === "zh" ? "帮助您管理全球电话卡充值" : "Helping you manage global SIM card recharges"}
         </Text>
