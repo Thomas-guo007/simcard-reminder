@@ -1,7 +1,5 @@
 name: Build Android APK
 
-# Produces a downloadable debug APK for direct Android device testing.
-
 on:
   workflow_dispatch:
   push:
@@ -25,15 +23,20 @@ on:
       - "metro.config.js"
       - "tsconfig.json"
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build debug APK
+    name: Build optimized release APK
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -52,22 +55,48 @@ jobs:
           java-version: "17"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Type check
+        run: pnpm check
 
       - name: Generate Android project
         run: pnpm exec expo prebuild --platform android --no-install --clean
 
-      - name: Build APK
+      - name: Enable release optimization
+        run: |
+          cat >> android/gradle.properties <<'EOF'
+          EX_DEV_CLIENT_NETWORK_INSPECTOR=false
+          expo.useLegacyPackaging=true
+          android.enableMinifyInReleaseBuilds=true
+          android.enableShrinkResourcesInReleaseBuilds=true
+          EOF
+
+      - name: Build release APK
         working-directory: android
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleRelease --stacktrace
 
-      - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk simcard-reminder-android.apk
+      - name: Publish APK into dist
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release.apk dist/simcard-reminder-android-release-v1.2.1.apk
+          rm -f dist/simcard-reminder-android-debug.apk
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: simcard-reminder-android-apk
-          path: simcard-reminder-android.apk
+          name: simcard-reminder-android-release-v1.2.1
+          path: dist/simcard-reminder-android-release-v1.2.1.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Commit APK to repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f dist/simcard-reminder-android-release-v1.2.1.apk
+          git rm -f --ignore-unmatch dist/simcard-reminder-android-debug.apk
+          if ! git diff --cached --quiet; then
+            git commit -m "Add optimized Android release APK [skip ci]"
+            git push
+          fi
