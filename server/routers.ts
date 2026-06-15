@@ -80,6 +80,10 @@ export const appRouter = router({
         if (data.remindDays) updateData.remindDays = data.remindDays;
         if (data.rechargeLink !== undefined) updateData.rechargeLink = data.rechargeLink || null;
         if (data.note !== undefined) updateData.note = data.note || null;
+
+        const scheduleChanged = Boolean(data.rechargeCycleDays || data.lastRechargeDate || data.remindDays);
+        if (scheduleChanged) updateData.isConfirmed = false;
+
         return db.updateSimCard(id, ctx.user.id, updateData);
       }),
 
