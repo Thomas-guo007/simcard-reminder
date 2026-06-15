@@ -2,10 +2,7 @@ import { Platform } from "react-native";
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as Auth from "./auth";
 
-type ApiResponse<T> = {
-  data?: T;
-  error?: string;
-};
+type LoginMethod = "email" | "phone";
 
 export async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
@@ -87,6 +84,32 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
     }
     throw new Error("Unknown error occurred");
   }
+}
+
+export async function requestPasswordlessCode(
+  method: LoginMethod,
+  target: string,
+): Promise<{ success: boolean; expiresInSeconds: number; delivery?: string; debugCode?: string }> {
+  return apiCall("/api/auth/passwordless/start", {
+    method: "POST",
+    body: JSON.stringify({ method, target }),
+  });
+}
+
+export async function verifyPasswordlessCode(
+  method: LoginMethod,
+  target: string,
+  code: string,
+): Promise<{ sessionToken: string; user: any }> {
+  const result = await apiCall<{ app_session_id: string; user: any }>("/api/auth/passwordless/verify", {
+    method: "POST",
+    body: JSON.stringify({ method, target, code }),
+  });
+
+  return {
+    sessionToken: result.app_session_id,
+    user: result.user,
+  };
 }
 
 // OAuth callback handler - exchange code for session token
