@@ -1,5 +1,7 @@
 name: Build Android APK
 
+# Produces a downloadable debug APK for direct Android device testing.
+
 on:
   workflow_dispatch:
   push:
