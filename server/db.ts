@@ -131,10 +131,10 @@ export async function confirmRecharge(cardId: number, userId: number) {
 
   const now = new Date();
 
-  // Update card: reset lastRechargeDate and isConfirmed
+  // Reset the cycle and keep the card active for the next round of reminders.
   await db.update(simCards).set({
     lastRechargeDate: now,
-    isConfirmed: true,
+    isConfirmed: false,
   }).where(and(eq(simCards.id, cardId), eq(simCards.userId, userId)));
 
   // Add to recharge history
