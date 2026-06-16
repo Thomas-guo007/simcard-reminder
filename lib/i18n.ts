@@ -109,6 +109,7 @@ export const translations = {
     checking: "检查中...",
     updateAvailable: "有新版本可用",
     noUpdate: "无可用更新",
+    updateCheckFailed: "检查更新失败，请稍后重试",
   },
   en: {
     loading: "Loading...",
@@ -214,6 +215,7 @@ export const translations = {
     checking: "Checking...",
     updateAvailable: "Update Available",
     noUpdate: "No Updates Available",
+    updateCheckFailed: "Update check failed, please try again later",
   },
 };
 

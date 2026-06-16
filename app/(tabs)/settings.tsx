@@ -42,11 +42,35 @@ export default function SettingsScreen() {
     setShowLangPicker(false);
   };
 
+  const promptUpdate = (info: VersionInfo) => {
+    const notes = info.releaseNotes ? `\n\n${info.releaseNotes}` : "";
+    const message = `${t("newVersionAvailable", { version: info.version })}${notes}`;
+
+    if (Platform.OS === "web") {
+      const shouldUpdate = confirm(message);
+      if (shouldUpdate) void openUpdateUrl(info.downloadUrl);
+      return;
+    }
+
+    Alert.alert(t("updateAvailable"), message, [
+      { text: t("cancel"), style: "cancel" },
+      {
+        text: t("updateNow"),
+        onPress: () => void openUpdateUrl(info.downloadUrl),
+      },
+    ]);
+  };
+
   const handleCheckUpdate = async () => {
     setIsCheckingUpdate(true);
     try {
       const info = await checkForUpdate();
       setUpdateInfo(info);
+      if (info.hasUpdate) {
+        promptUpdate(info);
+        return;
+      }
+
       if (!info.hasUpdate) {
         if (Platform.OS === "web") {
           alert(t("alreadyLatest"));
@@ -56,6 +80,11 @@ export default function SettingsScreen() {
       }
     } catch (error) {
       console.error("[Settings] Check update failed:", error);
+      if (Platform.OS === "web") {
+        alert(t("updateCheckFailed"));
+      } else {
+        Alert.alert(t("checkUpdate"), t("updateCheckFailed"));
+      }
     } finally {
       setIsCheckingUpdate(false);
     }
