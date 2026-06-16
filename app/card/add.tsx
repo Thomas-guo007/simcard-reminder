@@ -2,7 +2,6 @@ import { Text, View, TouchableOpacity, TextInput, ScrollView, Switch, Platform, 
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { trpc } from "@/lib/trpc";
 import { COUNTRIES } from "@/constants/countries";
 import { RINGTONES } from "@/constants/ringtones";
 import { useState, useMemo } from "react";
@@ -10,11 +9,11 @@ import { scheduleCardReminders } from "@/lib/notifications";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useLanguage } from "@/lib/language-provider";
 import { findRechargeLink, getCarriersByCountry } from "@/constants/recharge-links";
+import { createLocalSimCard } from "@/lib/local-sim-cards";
 
 export default function AddCardScreen() {
   const colors = useColors();
   const router = useRouter();
-  const utils = trpc.useUtils();
   const { t } = useLanguage();
 
   const [country, setCountry] = useState("");
@@ -34,6 +33,7 @@ export default function AddCardScreen() {
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const [showSuggestedLinks, setShowSuggestedLinks] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // 计算到期日和各提醒日期
   const reminderDates = useMemo(() => {
@@ -83,17 +83,33 @@ export default function AddCardScreen() {
     }
   };
 
-  const createMutation = trpc.simCards.create.useMutation({
-    onSuccess: async (result) => {
-      const remindDays: number[] = [];
-      if (remind7) remindDays.push(7);
-      if (remind3) remindDays.push(3);
-      if (remind1) remindDays.push(1);
+  const handleSave = async () => {
+    if (!country || !carrier || !phoneNumber || !rechargeCycleDays) {
+      return;
+    }
 
-      // Schedule notifications
+    setIsSaving(true);
+    const remindDays: number[] = [];
+    if (remind7) remindDays.push(7);
+    if (remind3) remindDays.push(3);
+    if (remind1) remindDays.push(1);
+
+    try {
+      const result = await createLocalSimCard({
+        country,
+        countryName,
+        carrier,
+        phoneNumber,
+        rechargeCycleDays: parseInt(rechargeCycleDays),
+        lastRechargeDate: new Date(lastRechargeDate).toISOString(),
+        remindDays,
+        rechargeLink: rechargeLink || undefined,
+        note: note || undefined,
+      });
+
       if (Platform.OS !== "web") {
         await scheduleCardReminders({
-          id: typeof result === "number" ? result : 0,
+          id: result.id,
           carrier,
           phoneNumber,
           countryName,
@@ -103,32 +119,10 @@ export default function AddCardScreen() {
         });
       }
 
-      utils.simCards.list.invalidate();
       router.back();
-    },
-  });
-
-  const handleSave = () => {
-    if (!country || !carrier || !phoneNumber || !rechargeCycleDays) {
-      return;
+    } finally {
+      setIsSaving(false);
     }
-
-    const remindDays: number[] = [];
-    if (remind7) remindDays.push(7);
-    if (remind3) remindDays.push(3);
-    if (remind1) remindDays.push(1);
-
-    createMutation.mutate({
-      country,
-      countryName,
-      carrier,
-      phoneNumber,
-      rechargeCycleDays: parseInt(rechargeCycleDays),
-      lastRechargeDate: new Date(lastRechargeDate).toISOString(),
-      remindDays,
-      rechargeLink: rechargeLink || undefined,
-      note: note || undefined,
-    });
   };
 
   const filteredCountries = COUNTRIES.filter(
@@ -148,11 +142,11 @@ export default function AddCardScreen() {
           <Text className="text-lg font-bold text-foreground">{t("addCardTitle")}</Text>
           <TouchableOpacity
             onPress={handleSave}
-            disabled={!country || !carrier || !phoneNumber || createMutation.isPending}
+            disabled={!country || !carrier || !phoneNumber || isSaving}
             style={{ opacity: (!country || !carrier || !phoneNumber) ? 0.4 : 1 }}
           >
             <Text className="text-base font-semibold" style={{ color: colors.primary }}>
-              {createMutation.isPending ? "..." : t("save")}
+              {isSaving ? "..." : t("save")}
             </Text>
           </TouchableOpacity>
         </View>

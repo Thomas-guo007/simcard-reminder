@@ -1,28 +1,26 @@
 import { Text, View, TouchableOpacity, TextInput, ScrollView, Switch, Platform } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { trpc } from "@/lib/trpc";
 import { COUNTRIES } from "@/constants/countries";
 import { RINGTONES } from "@/constants/ringtones";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { scheduleCardReminders } from "@/lib/notifications";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useLanguage } from "@/lib/language-provider";
 import { getCarriersByCountry } from "@/constants/recharge-links";
+import { getLocalSimCardById, updateLocalSimCard, type LocalSimCard } from "@/lib/local-sim-cards";
 
 export default function EditCardScreen() {
   const colors = useColors();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const utils = trpc.useUtils();
   const cardId = parseInt(id || "0");
   const { t } = useLanguage();
 
-  const { data: card, isLoading } = trpc.simCards.getById.useQuery(
-    { id: cardId },
-    { enabled: cardId > 0 }
-  );
+  const [card, setCard] = useState<LocalSimCard | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [country, setCountry] = useState("");
   const [countryName, setCountryName] = useState("");
@@ -42,6 +40,20 @@ export default function EditCardScreen() {
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const [initialized, setInitialized] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const loadCard = useCallback(async () => {
+    if (cardId <= 0) return;
+    setIsLoading(true);
+    setCard(await getLocalSimCardById(cardId));
+    setIsLoading(false);
+  }, [cardId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCard();
+    }, [loadCard]),
+  );
 
   // Initialize form with card data
   useEffect(() => {
@@ -103,14 +115,31 @@ export default function EditCardScreen() {
     return getCarriersByCountry(country);
   }, [country]);
 
-  const updateMutation = trpc.simCards.update.useMutation({
-    onSuccess: async () => {
-      const remindDays: number[] = [];
-      if (remind7) remindDays.push(7);
-      if (remind3) remindDays.push(3);
-      if (remind1) remindDays.push(1);
+  const handleSave = async () => {
+    if (!country || !carrier || !phoneNumber || !rechargeCycleDays) {
+      return;
+    }
 
-      // Re-schedule notifications
+    setIsSaving(true);
+    const remindDays: number[] = [];
+    if (remind7) remindDays.push(7);
+    if (remind3) remindDays.push(3);
+    if (remind1) remindDays.push(1);
+
+    try {
+      await updateLocalSimCard({
+        id: cardId,
+        country,
+        countryName,
+        carrier,
+        phoneNumber,
+        rechargeCycleDays: parseInt(rechargeCycleDays),
+        lastRechargeDate: new Date(lastRechargeDate).toISOString(),
+        remindDays,
+        rechargeLink: rechargeLink || undefined,
+        note: note || undefined,
+      });
+
       if (Platform.OS !== "web") {
         await scheduleCardReminders({
           id: cardId,
@@ -123,34 +152,10 @@ export default function EditCardScreen() {
         });
       }
 
-      utils.simCards.list.invalidate();
-      utils.simCards.getById.invalidate({ id: cardId });
       router.back();
-    },
-  });
-
-  const handleSave = () => {
-    if (!country || !carrier || !phoneNumber || !rechargeCycleDays) {
-      return;
+    } finally {
+      setIsSaving(false);
     }
-
-    const remindDays: number[] = [];
-    if (remind7) remindDays.push(7);
-    if (remind3) remindDays.push(3);
-    if (remind1) remindDays.push(1);
-
-    updateMutation.mutate({
-      id: cardId,
-      country,
-      countryName,
-      carrier,
-      phoneNumber,
-      rechargeCycleDays: parseInt(rechargeCycleDays),
-      lastRechargeDate: new Date(lastRechargeDate).toISOString(),
-      remindDays,
-      rechargeLink: rechargeLink || undefined,
-      note: note || undefined,
-    });
   };
 
   const filteredCountries = COUNTRIES.filter(
@@ -180,11 +185,11 @@ export default function EditCardScreen() {
           <Text className="text-lg font-bold text-foreground">{t("editCardTitle")}</Text>
           <TouchableOpacity
             onPress={handleSave}
-            disabled={!country || !carrier || !phoneNumber || updateMutation.isPending}
+            disabled={!country || !carrier || !phoneNumber || isSaving}
             style={{ opacity: (!country || !carrier || !phoneNumber) ? 0.4 : 1 }}
           >
             <Text className="text-base font-semibold" style={{ color: colors.primary }}>
-              {updateMutation.isPending ? "..." : t("save")}
+              {isSaving ? "..." : t("save")}
             </Text>
           </TouchableOpacity>
         </View>

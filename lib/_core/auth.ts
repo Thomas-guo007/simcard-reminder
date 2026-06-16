@@ -86,6 +86,9 @@ export async function getUserInfo(): Promise<User | null> {
       return null;
     }
     const user = JSON.parse(info);
+    if (user.lastSignedIn) {
+      user.lastSignedIn = new Date(user.lastSignedIn);
+    }
     console.log("[Auth] User info retrieved:", user);
     return user;
   } catch (error) {

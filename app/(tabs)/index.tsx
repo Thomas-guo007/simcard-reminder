@@ -1,9 +1,9 @@
 import { Text, View, TouchableOpacity, SectionList, FlatList, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
-import { trpc } from "@/lib/trpc";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { getDaysUntilDue, getCardStatus } from "@/lib/notifications";
 import { getCountryByCode } from "@/constants/countries";
@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { scheduleCardReminders, registerForNotifications } from "@/lib/notifications";
 import { Platform } from "react-native";
 import { useLanguage } from "@/lib/language-provider";
+import { listLocalSimCards, type LocalSimCard } from "@/lib/local-sim-cards";
 
 type ViewMode = "urgency" | "country";
 
@@ -19,12 +20,28 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [cards, setCards] = useState<LocalSimCard[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("urgency");
   const { t } = useLanguage();
 
-  const { data: cards, isLoading, refetch } = trpc.simCards.list.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
+  const refetch = useCallback(async () => {
+    if (!isAuthenticated) {
+      setCards([]);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    const localCards = await listLocalSimCards();
+    setCards(localCards);
+    setIsLoading(false);
+  }, [isAuthenticated]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch]),
+  );
 
   // Register notifications on mount
   useEffect(() => {
@@ -118,7 +135,7 @@ export default function HomeScreen() {
     return null;
   }
 
-  const renderCard = ({ item }: { item: NonNullable<typeof cards>[number] }) => {
+  const renderCard = ({ item }: { item: LocalSimCard }) => {
     const daysLeft = getDaysUntilDue(item.lastRechargeDate, item.rechargeCycleDays);
     const status = getCardStatus(daysLeft);
     const country = getCountryByCode(item.country);

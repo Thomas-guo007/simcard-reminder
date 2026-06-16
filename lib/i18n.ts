@@ -1,5 +1,4 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createContext, useContext } from "react";
 
 export type Language = "zh" | "en";
 
@@ -7,7 +6,6 @@ const LANG_KEY = "app_language";
 
 export const translations = {
   zh: {
-    // Common
     loading: "加载中...",
     save: "保存",
     cancel: "取消",
@@ -16,32 +14,27 @@ export const translations = {
     confirm: "确认",
     back: "返回",
 
-    // Login
     appTitle: "SIM卡充值提醒",
-    appSubtitle: "管理您的全球电话卡\n再也不会忘记充值",
-    feature1: "提前7天、3天、1天智能提醒",
-    feature2: "支持多张卡片同时管理",
+    appSubtitle: "管理你的全球电话卡\n避免号码因忘记充值而丢失",
+    feature1: "提前 7 天、3 天、1 天提醒",
+    feature2: "支持多张电话卡同时管理",
     feature3: "确认充值后自动重置提醒",
     loginButton: "登录",
-    loginHint: "支持邮箱或手机号登录",
+    loginHint: "支持邮箱验证码登录",
     emailLogin: "邮箱登录",
-    phoneLogin: "手机号登录",
     emailPlaceholder: "请输入邮箱地址",
-    loginPhonePlaceholder: "请输入手机号",
     pleaseEnterEmail: "请输入邮箱地址",
-    pleaseEnterPhone: "请输入手机号",
     loginError: "登录错误",
     loginFailed: "登录失败，请稍后重试",
-    loggingIn: "登录中...",
+    loggingIn: "处理中...",
 
-    // Home
     myCards: "我的卡片",
     totalCards: "共 {count} 张卡片",
-    manageCards: "管理您的电话卡",
+    manageCards: "管理你的电话卡",
     byUrgency: "按紧急程度",
     byCountry: "按国家/地区",
     noCards: "还没有添加电话卡",
-    noCardsHint: "点击下方按钮添加您的第一张卡片",
+    noCardsHint: "点击下方按钮添加第一张卡片",
     addCard: "添加卡片",
     daysLeft: "天后到期",
     dueToday: "今天到期",
@@ -51,30 +44,28 @@ export const translations = {
     statusNormal: "正常",
     cards: "张",
 
-    // Add/Edit Card
     addCardTitle: "添加卡片",
     editCardTitle: "编辑卡片",
     country: "国家/地区",
     selectCountry: "选择国家/地区",
     searchCountry: "搜索国家...",
     carrier: "运营商",
-    carrierPlaceholder: "如: 中国移动、Vodafone",
+    carrierPlaceholder: "如：中国移动、Vodafone",
     phoneNumber: "电话号码",
     phonePlaceholder: "输入电话号码",
     rechargeCycle: "充值周期（天）",
     lastRechargeDate: "上次充值日期",
     reminderSettings: "提醒设置",
     remindBefore: "提前 {days} 天提醒",
-    reminderDate: "提醒日期: {date}",
+    reminderDate: "提醒日期：{date}",
     ringtone: "提醒铃声",
     selectRingtone: "选择铃声",
     notes: "备注",
     notesPlaceholder: "可选备注信息",
     rechargeLink: "充值链接",
     rechargeLinkPlaceholder: "输入运营商充值网址",
-    rechargeLinkHint: "添加充值网址后可一键跳转充值",
+    rechargeLinkHint: "添加充值网址后可快速打开充值页面",
 
-    // Card Detail
     cardDetail: "卡片详情",
     dueDate: "到期日期",
     days: "天",
@@ -85,8 +76,8 @@ export const translations = {
     confirmRecharge: "确认已充值",
     confirmRecharged: "确认已充值",
     confirmRechargeTitle: "确认充值",
-    confirmRechargeMsg: "确认您已经为此号码完成充值？",
-    confirmRechargeHint: "确认后将重置充值周期并重新安排提醒",
+    confirmRechargeMsg: "确认已经为这个号码完成充值？",
+    confirmRechargeHint: "确认后会重置充值周期并重新安排提醒",
     deleteCard: "删除卡片",
     deleteCardTitle: "删除卡片",
     deleteCardMsg: "确定要删除这张卡片吗？此操作不可撤销。",
@@ -101,7 +92,6 @@ export const translations = {
     error: "错误",
     cannotOpenLink: "无法打开链接",
 
-    // Settings
     settings: "设置",
     language: "语言",
     languageZh: "中文",
@@ -115,13 +105,12 @@ export const translations = {
     latestVersion: "最新版本",
     newVersionAvailable: "发现新版本 {version}",
     updateNow: "立即更新",
-    alreadyLatest: "已是最新版本",
+    alreadyLatest: "已经是最新版本",
     checking: "检查中...",
     updateAvailable: "有新版本可用",
     noUpdate: "无可用更新",
   },
   en: {
-    // Common
     loading: "Loading...",
     save: "Save",
     cancel: "Cancel",
@@ -130,25 +119,20 @@ export const translations = {
     confirm: "Confirm",
     back: "Back",
 
-    // Login
     appTitle: "SIM Recharge Reminder",
-    appSubtitle: "Manage your global SIM cards\nNever forget to recharge",
-    feature1: "Smart reminders 7, 3, 1 days before",
-    feature2: "Manage multiple cards at once",
-    feature3: "Auto-reset after recharge confirmation",
+    appSubtitle: "Manage your global SIM cards\nNever lose a number because you forgot to recharge",
+    feature1: "Reminders 7, 3, and 1 days before expiry",
+    feature2: "Manage multiple SIM cards",
+    feature3: "Reset reminders after recharge confirmation",
     loginButton: "Sign In",
-    loginHint: "Sign in with email or phone",
+    loginHint: "Sign in with an email code",
     emailLogin: "Email",
-    phoneLogin: "Phone",
     emailPlaceholder: "Enter your email address",
-    loginPhonePlaceholder: "Enter your phone number",
     pleaseEnterEmail: "Please enter your email address",
-    pleaseEnterPhone: "Please enter your phone number",
     loginError: "Login Error",
     loginFailed: "Login failed, please try again",
-    loggingIn: "Signing in...",
+    loggingIn: "Processing...",
 
-    // Home
     myCards: "My Cards",
     totalCards: "{count} cards total",
     manageCards: "Manage your SIM cards",
@@ -165,7 +149,6 @@ export const translations = {
     statusNormal: "Normal",
     cards: "cards",
 
-    // Add/Edit Card
     addCardTitle: "Add Card",
     editCardTitle: "Edit Card",
     country: "Country/Region",
@@ -188,7 +171,6 @@ export const translations = {
     rechargeLinkPlaceholder: "Enter carrier recharge URL",
     rechargeLinkHint: "Add recharge URL for quick access",
 
-    // Card Detail
     cardDetail: "Card Detail",
     dueDate: "Due Date",
     days: "days",
@@ -215,7 +197,6 @@ export const translations = {
     error: "Error",
     cannotOpenLink: "Cannot open link",
 
-    // Settings
     settings: "Settings",
     language: "Language",
     languageZh: "中文",

@@ -1,4 +1,13 @@
-import { Text, View, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -8,15 +17,13 @@ import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
 import { useState } from "react";
 
-type LoginMethod = "email" | "phone";
 type LoginStep = "target" | "code";
 
 export default function LoginScreen() {
   const colors = useColors();
   const router = useRouter();
   const { language, t } = useLanguage();
-  const [loginMethod, setLoginMethod] = useState<LoginMethod>("email");
-  const [inputValue, setInputValue] = useState("");
+  const [email, setEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [debugCode, setDebugCode] = useState<string | null>(null);
   const [step, setStep] = useState<LoginStep>("target");
@@ -32,27 +39,14 @@ export default function LoginScreen() {
     }
   };
 
-  const resetLoginState = (method: LoginMethod) => {
-    setLoginMethod(method);
-    setInputValue("");
-    setVerificationCode("");
-    setDebugCode(null);
-    setStep("target");
-  };
-
   const validateTarget = () => {
-    const value = inputValue.trim();
+    const value = email.trim();
     if (!value) {
-      return loginMethod === "email" ? t("pleaseEnterEmail") : t("pleaseEnterPhone");
+      return t("pleaseEnterEmail");
     }
 
-    if (loginMethod === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.toLowerCase())) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.toLowerCase())) {
       return text("请输入正确的邮箱地址", "Please enter a valid email address");
-    }
-
-    const phone = value.replace(/[\s()-]/g, "");
-    if (loginMethod === "phone" && !/^\+?[0-9]{6,20}$/.test(phone)) {
-      return text("请输入正确的手机号，国际号码可带 + 号", "Please enter a valid phone number. International numbers may start with +.");
     }
 
     return null;
@@ -67,14 +61,17 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      const result = await Api.requestPasswordlessCode(loginMethod, inputValue.trim());
-      setDebugCode(result.debugCode ?? null);
+      const result = await Api.requestPasswordlessCode(email.trim());
+      setDebugCode(result.debugCode);
       setStep("code");
 
-      const message = result.debugCode
-        ? text(`测试验证码：${result.debugCode}`, `Test code: ${result.debugCode}`)
-        : text("验证码已发送，请查看手机或邮箱", "Verification code sent. Check your phone or email.");
-      showMessage(text("验证码已发送", "Code Sent"), message);
+      showMessage(
+        text("验证码已生成", "Code Ready"),
+        text(
+          `当前版本为本地验证码，验证码是：${result.debugCode}`,
+          `This build uses a local verification code: ${result.debugCode}`,
+        ),
+      );
     } catch (error) {
       console.error("[Login] Request code failed:", error);
       showMessage(t("loginError"), error instanceof Error ? error.message : t("loginFailed"));
@@ -92,15 +89,15 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      const result = await Api.verifyPasswordlessCode(loginMethod, inputValue.trim(), code);
+      const result = await Api.verifyPasswordlessCode(email.trim(), code);
       await Auth.setSessionToken(result.sessionToken);
       await Auth.setUserInfo({
-        id: Number(result.user?.id ?? 0),
-        openId: result.user?.openId,
-        name: result.user?.name ?? null,
-        email: result.user?.email ?? null,
-        loginMethod: result.user?.loginMethod ?? loginMethod,
-        lastSignedIn: new Date(result.user?.lastSignedIn || Date.now()),
+        id: Number(result.user.id),
+        openId: result.user.openId,
+        name: result.user.name,
+        email: result.user.email,
+        loginMethod: result.user.loginMethod,
+        lastSignedIn: new Date(result.user.lastSignedIn || Date.now()),
       });
       router.replace("/(tabs)" as any);
     } catch (error) {
@@ -125,10 +122,7 @@ export default function LoginScreen() {
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
           <View className="flex-1 justify-center items-center px-8 gap-6">
             <View className="items-center gap-4">
               <View
@@ -138,9 +132,7 @@ export default function LoginScreen() {
                 <IconSymbol name="sim.card" size={48} color="#FFFFFF" />
               </View>
               <Text className="text-3xl font-bold text-foreground">{t("appTitle")}</Text>
-              <Text className="text-base text-muted text-center leading-6">
-                {t("appSubtitle")}
-              </Text>
+              <Text className="text-base text-muted text-center leading-6">{t("appSubtitle")}</Text>
             </View>
 
             <View className="w-full gap-3">
@@ -159,37 +151,7 @@ export default function LoginScreen() {
             </View>
 
             <View className="w-full mt-4">
-              <View
-                className="flex-row rounded-xl overflow-hidden mb-4"
-                style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
-              >
-                <TouchableOpacity
-                  className="flex-1 py-3 items-center"
-                  style={{ backgroundColor: loginMethod === "email" ? colors.primary : "transparent" }}
-                  onPress={() => resetLoginState("email")}
-                  disabled={isLoading}
-                >
-                  <Text
-                    className="text-sm font-medium"
-                    style={{ color: loginMethod === "email" ? "#FFFFFF" : colors.foreground }}
-                  >
-                    {t("emailLogin")}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="flex-1 py-3 items-center"
-                  style={{ backgroundColor: loginMethod === "phone" ? colors.primary : "transparent" }}
-                  onPress={() => resetLoginState("phone")}
-                  disabled={isLoading}
-                >
-                  <Text
-                    className="text-sm font-medium"
-                    style={{ color: loginMethod === "phone" ? "#FFFFFF" : colors.foreground }}
-                  >
-                    {t("phoneLogin")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <Text className="text-sm font-semibold text-foreground mb-2">{t("emailLogin")}</Text>
 
               <View
                 className="w-full rounded-xl px-4 py-3 mb-3"
@@ -198,16 +160,16 @@ export default function LoginScreen() {
                 <TextInput
                   className="text-base"
                   style={{ color: colors.foreground, minHeight: 24 }}
-                  placeholder={loginMethod === "email" ? t("emailPlaceholder") : t("loginPhonePlaceholder")}
+                  placeholder={t("emailPlaceholder")}
                   placeholderTextColor={colors.muted}
-                  value={inputValue}
+                  value={email}
                   onChangeText={(value) => {
-                    setInputValue(value);
+                    setEmail(value);
                     setVerificationCode("");
                     setDebugCode(null);
                     setStep("target");
                   }}
-                  keyboardType={loginMethod === "email" ? "email-address" : "phone-pad"}
+                  keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
                   editable={!isLoading}
@@ -241,17 +203,13 @@ export default function LoginScreen() {
 
                   {debugCode && (
                     <Text className="text-xs text-muted mb-3 text-center">
-                      {text("当前测试验证码", "Current test code")}: {debugCode}
+                      {text("当前验证码", "Current code")}: {debugCode}
                     </Text>
                   )}
 
-                  <TouchableOpacity
-                    className="mb-3 items-center"
-                    onPress={handleRequestCode}
-                    disabled={isLoading}
-                  >
+                  <TouchableOpacity className="mb-3 items-center" onPress={handleRequestCode} disabled={isLoading}>
                     <Text className="text-sm font-medium" style={{ color: colors.primary }}>
-                      {text("重新发送验证码", "Resend code")}
+                      {text("重新获取验证码", "Resend code")}
                     </Text>
                   </TouchableOpacity>
                 </>
@@ -267,14 +225,14 @@ export default function LoginScreen() {
                   {isLoading
                     ? t("loggingIn")
                     : step === "target"
-                      ? text("发送验证码", "Send Code")
+                      ? text("获取验证码", "Get Code")
                       : text("验证并登录", "Verify and Sign In")}
                 </Text>
               </TouchableOpacity>
 
               <Text className="text-xs text-muted mt-3 text-center">
                 {step === "target"
-                  ? text("使用手机号或邮箱验证码直接登录", "Sign in directly with a phone or email verification code")
+                  ? text("使用邮箱验证码直接登录，不跳转网页", "Sign in directly with an email code")
                   : text("验证码 10 分钟内有效", "The verification code is valid for 10 minutes")}
               </Text>
             </View>

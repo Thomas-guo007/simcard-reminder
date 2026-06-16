@@ -1,79 +1,108 @@
 import { Text, View, TouchableOpacity, ScrollView, Alert, Platform, Linking } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { trpc } from "@/lib/trpc";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { getDaysUntilDue, getCardStatus, scheduleCardReminders, cancelCardReminders } from "@/lib/notifications";
 import { getCountryByCode } from "@/constants/countries";
 import { useLanguage } from "@/lib/language-provider";
+import { useCallback, useState } from "react";
+import {
+  confirmLocalRecharge,
+  deleteLocalSimCard,
+  getLocalRechargeHistory,
+  getLocalSimCardById,
+  type LocalRechargeHistory,
+  type LocalSimCard,
+} from "@/lib/local-sim-cards";
 
 export default function CardDetailScreen() {
   const colors = useColors();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const utils = trpc.useUtils();
   const { t } = useLanguage();
 
   const cardId = parseInt(id || "0");
+  const [card, setCard] = useState<LocalSimCard | null>(null);
+  const [history, setHistory] = useState<LocalRechargeHistory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data: card, isLoading } = trpc.simCards.getById.useQuery(
-    { id: cardId },
-    { enabled: cardId > 0 }
+  const loadCard = useCallback(async () => {
+    if (cardId <= 0) return;
+    setIsLoading(true);
+    const [localCard, localHistory] = await Promise.all([
+      getLocalSimCardById(cardId),
+      getLocalRechargeHistory(cardId),
+    ]);
+    setCard(localCard);
+    setHistory(localHistory);
+    setIsLoading(false);
+  }, [cardId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCard();
+    }, [loadCard]),
   );
 
-  const { data: history } = trpc.simCards.rechargeHistory.useQuery(
-    { cardId },
-    { enabled: cardId > 0 }
-  );
-
-  const confirmMutation = trpc.simCards.confirmRecharge.useMutation({
-    onSuccess: () => {
-      utils.simCards.list.invalidate();
-      utils.simCards.getById.invalidate({ id: cardId });
-      utils.simCards.rechargeHistory.invalidate({ cardId });
-      if (card && Platform.OS !== "web") {
-        scheduleCardReminders({
-          id: card.id,
-          carrier: card.carrier,
-          phoneNumber: card.phoneNumber,
-          countryName: card.countryName,
-          lastRechargeDate: new Date().toISOString(),
-          rechargeCycleDays: card.rechargeCycleDays,
-          remindDays: card.remindDays as number[],
-        });
+  const confirmRecharge = async () => {
+    setIsConfirming(true);
+    try {
+      const updated = await confirmLocalRecharge(cardId);
+      if (updated) {
+        setCard(updated);
+        setHistory(await getLocalRechargeHistory(cardId));
+        if (Platform.OS !== "web") {
+          await scheduleCardReminders({
+            id: updated.id,
+            carrier: updated.carrier,
+            phoneNumber: updated.phoneNumber,
+            countryName: updated.countryName,
+            lastRechargeDate: updated.lastRechargeDate,
+            rechargeCycleDays: updated.rechargeCycleDays,
+            remindDays: updated.remindDays,
+          });
+        }
       }
-    },
-  });
+    } finally {
+      setIsConfirming(false);
+    }
+  };
 
-  const deleteMutation = trpc.simCards.delete.useMutation({
-    onSuccess: () => {
+  const deleteCard = async () => {
+    setIsDeleting(true);
+    try {
       if (Platform.OS !== "web") {
-        cancelCardReminders(cardId);
+        await cancelCardReminders(cardId);
       }
-      utils.simCards.list.invalidate();
+      await deleteLocalSimCard(cardId);
       router.back();
-    },
-  });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleConfirmRecharge = () => {
     if (Platform.OS === "web") {
-      confirmMutation.mutate({ id: cardId });
+      confirmRecharge();
     } else {
       Alert.alert(t("confirmRechargeTitle"), t("confirmRechargeMsg"), [
         { text: t("cancel"), style: "cancel" },
-        { text: t("confirm"), onPress: () => confirmMutation.mutate({ id: cardId }) },
+        { text: t("confirm"), onPress: confirmRecharge },
       ]);
     }
   };
 
   const handleDelete = () => {
     if (Platform.OS === "web") {
-      deleteMutation.mutate({ id: cardId });
+      deleteCard();
     } else {
       Alert.alert(t("deleteCardTitle"), t("deleteCardMsg"), [
         { text: t("cancel"), style: "cancel" },
-        { text: t("delete"), style: "destructive", onPress: () => deleteMutation.mutate({ id: cardId }) },
+        { text: t("delete"), style: "destructive", onPress: deleteCard },
       ]);
     }
   };
@@ -170,12 +199,12 @@ export default function CardDetailScreen() {
           className="py-4 rounded-2xl items-center mb-4"
           style={{ backgroundColor: colors.success }}
           onPress={handleConfirmRecharge}
-          disabled={confirmMutation.isPending}
+          disabled={isConfirming}
         >
           <View className="flex-row items-center gap-2">
             <IconSymbol name="checkmark.circle.fill" size={22} color="#FFFFFF" />
             <Text className="text-white text-lg font-semibold">
-              {confirmMutation.isPending ? "..." : t("confirmRecharged")}
+              {isConfirming ? "..." : t("confirmRecharged")}
             </Text>
           </View>
         </TouchableOpacity>
