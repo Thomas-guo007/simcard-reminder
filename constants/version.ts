@@ -1,8 +1,8 @@
 import { Linking, Platform } from "react-native";
 
-export const APP_VERSION = "1.2.5";
-export const BUILD_NUMBER = "6";
-export const VERSION_DATE = "2026-06-16";
+export const APP_VERSION = "1.2.6";
+export const BUILD_NUMBER = "7";
+export const VERSION_DATE = "2026-06-19";
 
 const GITHUB_REPO = "Thomas-guo007/simcard-reminder";
 const UPDATE_MANIFEST_URL =

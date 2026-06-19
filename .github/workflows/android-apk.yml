@@ -80,14 +80,14 @@ jobs:
       - name: Publish APK into dist
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/simcard-reminder-android-release-v1.2.5.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/simcard-reminder-android-release-v1.2.6.apk
           rm -f dist/simcard-reminder-android-debug.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: simcard-reminder-android-release-v1.2.5
-          path: dist/simcard-reminder-android-release-v1.2.5.apk
+          name: simcard-reminder-android-release-v1.2.6
+          path: dist/simcard-reminder-android-release-v1.2.6.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -95,7 +95,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f dist/simcard-reminder-android-release-v1.2.5.apk
+          git add -f dist/simcard-reminder-android-release-v1.2.6.apk
           git rm -f --ignore-unmatch dist/simcard-reminder-android-debug.apk
           if ! git diff --cached --quiet; then
             git commit -m "Add optimized Android release APK [skip ci]"

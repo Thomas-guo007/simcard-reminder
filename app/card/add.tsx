@@ -1,10 +1,10 @@
-import { Text, View, TouchableOpacity, TextInput, ScrollView, Switch, Platform, Linking } from "react-native";
+import { Text, View, TouchableOpacity, TextInput, ScrollView, Switch, Platform, KeyboardAvoidingView } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { COUNTRIES } from "@/constants/countries";
 import { RINGTONES } from "@/constants/ringtones";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { scheduleCardReminders } from "@/lib/notifications";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useLanguage } from "@/lib/language-provider";
@@ -15,6 +15,7 @@ export default function AddCardScreen() {
   const colors = useColors();
   const router = useRouter();
   const { t } = useLanguage();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [country, setCountry] = useState("");
   const [countryName, setCountryName] = useState("");
@@ -119,7 +120,7 @@ export default function AddCardScreen() {
         });
       }
 
-      router.back();
+      router.replace("/" as any);
     } finally {
       setIsSaving(false);
     }
@@ -133,7 +134,18 @@ export default function AddCardScreen() {
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} className="px-4 pt-4">
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+      >
+      <ScrollView
+        ref={scrollViewRef}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 40 : 160 }}
+      >
         {/* Header */}
         <View className="flex-row items-center justify-between mb-6">
           <TouchableOpacity onPress={() => router.back()} style={{ opacity: 0.8 }}>
@@ -412,12 +424,16 @@ export default function AddCardScreen() {
             placeholderTextColor={colors.muted}
             value={note}
             onChangeText={setNote}
+            onFocus={() => {
+              setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 250);
+            }}
             multiline
             numberOfLines={3}
             style={{ minHeight: 80, textAlignVertical: "top" }}
           />
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </ScreenContainer>
   );
 }

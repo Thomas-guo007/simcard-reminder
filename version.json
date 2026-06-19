@@ -1,11 +1,11 @@
 {
-  "latestVersion": "1.2.5",
-  "buildNumber": "6",
-  "releaseDate": "2026-06-16",
-  "downloadUrl": "https://github.com/Thomas-guo007/simcard-reminder/raw/main/releases/android/simcard-reminder-android-release-v1.2.5.apk",
+  "latestVersion": "1.2.6",
+  "buildNumber": "7",
+  "releaseDate": "2026-06-19",
+  "downloadUrl": "https://github.com/Thomas-guo007/simcard-reminder/raw/main/releases/android/simcard-reminder-android-release-v1.2.6.apk",
   "releaseNotes": [
-    "检查更新改为读取 GitHub 版本清单。",
-    "发现新版本后可直接打开新版 APK 下载入口。",
+    "添加卡片保存成功后直接返回主界面。",
+    "添加卡片备注输入时页面会避让键盘，避免文字被遮挡。",
     "同步 README 与安卓安装包版本信息。"
   ]
 }

@@ -6,7 +6,7 @@ const bundleId = "com.app.simcardreminder";
 const config: ExpoConfig = {
   name: "SIM卡充值提醒",
   slug: "simcard-reminder",
-  version: "1.2.5",
+  version: "1.2.6",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "simcardreminder",
@@ -29,7 +29,7 @@ const config: ExpoConfig = {
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: bundleId,
-    versionCode: 6,
+    versionCode: 7,
     permissions: ["POST_NOTIFICATIONS"],
     blockedPermissions: [
       "android.permission.READ_EXTERNAL_STORAGE",

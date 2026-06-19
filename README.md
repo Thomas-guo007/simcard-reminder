@@ -4,8 +4,8 @@
 
 ## 当前版本
 
-- 最新版本：v1.2.5
-- Android 安装包：[下载 APK](https://github.com/Thomas-guo007/simcard-reminder/raw/main/releases/android/simcard-reminder-android-release-v1.2.5.apk)
+- 最新版本：v1.2.6
+- Android 安装包：[下载 APK](https://github.com/Thomas-guo007/simcard-reminder/raw/main/releases/android/simcard-reminder-android-release-v1.2.6.apk)
 - 更新清单：[version.json](./version.json)
 
 ## 主要功能
@@ -75,6 +75,7 @@ Android Release APK 构建需要 Android SDK、JDK 17 和 Gradle 环境。当前
 
 | 版本 | 日期 | 更新内容 |
 |------|------|----------|
+| v1.2.6 | 2026-06-19 | 添加卡片保存成功后直接返回主界面；备注输入时页面自动避让键盘，避免输入内容被遮挡 |
 | v1.2.5 | 2026-06-16 | 检查更新改为读取 GitHub version.json；发现新版后直接打开 APK 下载入口；同步 README、版本号和安卓安装包信息 |
 | v1.2.4 | 2026-06-16 | 移除外部网页登录跳转；改为邮箱验证码登录；SIM 卡数据改为本地存储；修复安卓启动和无效 URL 问题 |
 | v1.2.0 | 2026-06-11 | 新增登录界面、设置页版本检测入口和 README 版本记录 |
